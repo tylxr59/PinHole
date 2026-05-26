@@ -4,6 +4,8 @@ PinHole turns your Pebble Time 2 into a quick, button-first viewer for go2rtc se
 
 It is built for quick checks: pick a camera with the hardware buttons, fetch a fresh still frame, and keep the last good image on screen while the next one loads.
 
+Install PinHole from the [Repebble App Store](https://apps.repebble.com/789d24302fcd416ab4f68cf4).
+
 ## Features
 
 - Direct go2rtc snapshot support, no proxy required
