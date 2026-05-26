@@ -18,23 +18,27 @@ module.exports = [
         "type": "input",
         "messageKey": "BaseUrl",
         "label": "Base URL",
-        "description": "Example: http://192.168.1.10:1984",
+        "description": "go2rtc URL reachable from your paired phone. Example: http://192.168.1.10:1984",
         "attributes": {
+          "type": "url",
           "placeholder": "http://host:1984",
           "limit": 128
         }
       },
       {
-        "type": "input",
+        "type": "select",
         "messageKey": "CacheSeconds",
         "label": "Cache seconds",
-        "description": "Optional. Use 0 for no go2rtc frame cache.",
+        "description": "Optional go2rtc frame cache. Use 0 for live refreshes.",
         "defaultValue": "0",
-        "attributes": {
-          "type": "number",
-          "min": "0",
-          "max": "60"
-        }
+        "options": [
+          { "label": "0 seconds", "value": "0" },
+          { "label": "5 seconds", "value": "5" },
+          { "label": "10 seconds", "value": "10" },
+          { "label": "15 seconds", "value": "15" },
+          { "label": "30 seconds", "value": "30" },
+          { "label": "60 seconds", "value": "60" }
+        ]
       }
     ]
   },
@@ -47,12 +51,21 @@ module.exports = [
       },
       {
         "type": "text",
-        "defaultValue": "Add up to six go2rtc streams. Leave unused rows blank."
+        "defaultValue": "Add up to six go2rtc streams. Leave unused camera sections blank. If loading fails, test /api/frame.jpeg from the paired phone browser."
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Camera 1"
       },
       {
         "type": "input",
         "messageKey": "Cam0Name",
-        "label": "Camera 1 name",
+        "label": "Name",
         "attributes": {
           "placeholder": "Front Door",
           "limit": 40
@@ -61,16 +74,26 @@ module.exports = [
       {
         "type": "input",
         "messageKey": "Cam0Stream",
-        "label": "Camera 1 stream",
+        "label": "go2rtc stream",
+        "description": "Stream alias from go2rtc, such as front, garage, or driveway.",
         "attributes": {
           "placeholder": "front",
           "limit": 96
         }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Camera 2"
       },
       {
         "type": "input",
         "messageKey": "Cam1Name",
-        "label": "Camera 2 name",
+        "label": "Name",
         "attributes": {
           "placeholder": "Garage",
           "limit": 40
@@ -79,73 +102,122 @@ module.exports = [
       {
         "type": "input",
         "messageKey": "Cam1Stream",
-        "label": "Camera 2 stream",
+        "label": "go2rtc stream",
+        "description": "Must match the stream name configured in go2rtc.",
         "attributes": {
           "placeholder": "garage",
           "limit": 96
         }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Camera 3"
       },
       {
         "type": "input",
         "messageKey": "Cam2Name",
-        "label": "Camera 3 name",
+        "label": "Name",
         "attributes": {
+          "placeholder": "Driveway",
           "limit": 40
         }
       },
       {
         "type": "input",
         "messageKey": "Cam2Stream",
-        "label": "Camera 3 stream",
+        "label": "go2rtc stream",
+        "description": "Leave name and stream blank if unused.",
         "attributes": {
+          "placeholder": "driveway",
           "limit": 96
         }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Camera 4"
       },
       {
         "type": "input",
         "messageKey": "Cam3Name",
-        "label": "Camera 4 name",
+        "label": "Name",
         "attributes": {
+          "placeholder": "Back Yard",
           "limit": 40
         }
       },
       {
         "type": "input",
         "messageKey": "Cam3Stream",
-        "label": "Camera 4 stream",
+        "label": "go2rtc stream",
+        "description": "Use only the alias, not the full /api/frame.jpeg URL.",
         "attributes": {
+          "placeholder": "backyard",
           "limit": 96
         }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Camera 5"
       },
       {
         "type": "input",
         "messageKey": "Cam4Name",
-        "label": "Camera 5 name",
+        "label": "Name",
         "attributes": {
+          "placeholder": "Side Gate",
           "limit": 40
         }
       },
       {
         "type": "input",
         "messageKey": "Cam4Stream",
-        "label": "Camera 5 stream",
+        "label": "go2rtc stream",
+        "description": "Must match the stream name configured in go2rtc.",
         "attributes": {
+          "placeholder": "side_gate",
           "limit": 96
         }
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Camera 6"
       },
       {
         "type": "input",
         "messageKey": "Cam5Name",
-        "label": "Camera 6 name",
+        "label": "Name",
         "attributes": {
+          "placeholder": "Porch",
           "limit": 40
         }
       },
       {
         "type": "input",
         "messageKey": "Cam5Stream",
-        "label": "Camera 6 stream",
+        "label": "go2rtc stream",
+        "description": "Leave name and stream blank if unused.",
         "attributes": {
+          "placeholder": "porch",
           "limit": 96
         }
       }

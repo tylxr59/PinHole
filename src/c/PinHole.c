@@ -195,6 +195,21 @@ static void prv_draw_centered_text(GContext *ctx, GRect rect, const char *text,
                      GTextAlignmentCenter, NULL);
 }
 
+static void prv_draw_text(GContext *ctx, GRect rect, const char *text,
+                          GFont font, GColor color,
+                          GTextAlignment alignment) {
+  graphics_context_set_text_color(ctx, color);
+  graphics_draw_text(ctx, text, font, rect, GTextOverflowModeTrailingEllipsis,
+                     alignment, NULL);
+}
+
+static const char *prv_error_hint(void) {
+  if (strcmp(s_error, "PHONE TIMEOUT") == 0) {
+    return "CHECK PHONE";
+  }
+  return "SELECT TO RETRY";
+}
+
 static void prv_layer_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   graphics_context_set_fill_color(ctx, GColorBlack);
@@ -204,15 +219,30 @@ static void prv_layer_update(Layer *layer, GContext *ctx) {
   GRect viewport = GRect(VIEW_X, VIEW_Y, VIEW_W, VIEW_H);
   GRect footer = GRect(0, VIEW_Y + VIEW_H, bounds.size.w, bounds.size.h - VIEW_Y - VIEW_H);
 
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, header, 0, GCornerNone);
+
   const char *title = s_camera_name[0] ? s_camera_name : "PinHole";
-  prv_draw_centered_text(ctx, header, title,
-                         fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-                         GColorWhite);
+  prv_draw_text(ctx, GRect(6, header.origin.y + 2, bounds.size.w - 58, 24),
+                title, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+                GColorBlack, GTextAlignmentLeft);
+
+  char index_text[24];
+  if (s_camera_count > 0) {
+    snprintf(index_text, sizeof(index_text), "%d/%d",
+             s_camera_index + 1, s_camera_count);
+  } else {
+    snprintf(index_text, sizeof(index_text), "--");
+  }
+  prv_draw_text(ctx, GRect(bounds.size.w - 48, header.origin.y + 4, 42, 24),
+                index_text, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                GColorBlack, GTextAlignmentRight);
+
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, GPoint(0, VIEW_Y - 1), GPoint(bounds.size.w, VIEW_Y - 1));
 
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, viewport, 0, GCornerNone);
-  graphics_context_set_stroke_color(ctx, GColorDarkGray);
-  graphics_draw_rect(ctx, viewport);
 
   if (s_bitmap && (s_status == APP_STATUS_READY || s_waiting_for_frame)) {
     GRect image_rect = GRect(viewport.origin.x + (viewport.size.w - s_frame_w) / 2,
@@ -221,46 +251,51 @@ static void prv_layer_update(Layer *layer, GContext *ctx) {
     graphics_draw_bitmap_in_rect(ctx, s_bitmap, image_rect);
   } else {
     const char *msg = "NO FRAME";
+    const char *hint = "SELECT REFRESH";
     GColor color = GColorLightGray;
     if (s_status == APP_STATUS_LOADING) {
-      msg = "LOADING";
+      msg = "REFRESHING...";
+      hint = "PLEASE WAIT";
       color = GColorYellow;
     } else if (s_status == APP_STATUS_ERROR) {
       msg = s_error[0] ? s_error : "ERROR";
+      hint = prv_error_hint();
       color = GColorRed;
     } else if (s_camera_count == 0) {
-      msg = "CONFIGURE CAMERAS";
+      msg = "OPEN PHONE SETTINGS";
+      hint = "ADD CAMERAS";
+    } else {
+      msg = "SELECT REFRESH";
+      hint = "UP/DOWN CAMERAS";
     }
-    prv_draw_centered_text(ctx, GRect(viewport.origin.x + 6, viewport.origin.y + 70,
+    prv_draw_centered_text(ctx, GRect(viewport.origin.x + 6, viewport.origin.y + 58,
                                       viewport.size.w - 12, 28),
                            msg, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
                            color);
+    prv_draw_centered_text(ctx, GRect(viewport.origin.x + 8, viewport.origin.y + 88,
+                                      viewport.size.w - 16, 24),
+                           hint, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                           GColorLightGray);
   }
-
-  char left[32];
-  if (s_camera_count > 0) {
-    snprintf(left, sizeof(left), "%d/%d", s_camera_index + 1, s_camera_count);
-  } else {
-    snprintf(left, sizeof(left), "0/0");
-  }
-  prv_draw_centered_text(ctx, GRect(4, footer.origin.y + 3, 42, 22), left,
-                         fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-                         GColorLightGray);
 
   char status[40];
   if (s_waiting_for_frame) {
-    snprintf(status, sizeof(status), "LOADING");
+    snprintf(status, sizeof(status), "REFRESHING...");
   } else if (s_status == APP_STATUS_ERROR) {
-    strncpy(status, s_error[0] ? s_error : "ERROR", sizeof(status) - 1);
+    strncpy(status, prv_error_hint(), sizeof(status) - 1);
     status[sizeof(status) - 1] = '\0';
   } else if (s_status == APP_STATUS_READY) {
     prv_format_updated(status, sizeof(status));
   } else {
-    snprintf(status, sizeof(status), "SELECT TO REFRESH");
+    snprintf(status, sizeof(status), "SELECT REFRESH | UP/DOWN CAMERAS");
   }
-  prv_draw_centered_text(ctx, GRect(42, footer.origin.y + 3, bounds.size.w - 46, 22),
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, footer, 0, GCornerNone);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, GPoint(0, footer.origin.y), GPoint(bounds.size.w, footer.origin.y));
+  prv_draw_centered_text(ctx, GRect(4, footer.origin.y + 5, bounds.size.w - 8, 22),
                          status, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-                         s_status == APP_STATUS_ERROR ? GColorRed : GColorLightGray);
+                         GColorBlack);
 }
 
 static void prv_copy_frame_to_bitmap(void) {
