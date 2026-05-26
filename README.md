@@ -6,6 +6,8 @@ It is built for quick checks: pick a camera with the hardware buttons, fetch a f
 
 Install PinHole from the [Repebble App Store](https://apps.repebble.com/789d24302fcd416ab4f68cf4).
 
+![PinHole Pebble screenshot](https://github.com/tylxr59/PinHole/blob/main/pebble_screenshot.png?raw=true)
+
 ## Features
 
 - Direct go2rtc snapshot support, no proxy required
@@ -102,17 +104,6 @@ http://your-go2rtc-host:1984/api/frame.jpeg?src=your_stream&w=200
 ```
 
 If that does not load, PinHole will not be able to fetch it either.
-
-## Store Notes
-
-PinHole is designed for Pebble Time 2 only. It shows still JPEG frames through go2rtc's `/api/frame.jpeg` endpoint; it does not stream video.
-
-Recommended screenshots for a store listing:
-
-- A configured camera with a loaded frame and `UPDATED NOW`
-- A refresh in progress with the previous frame still visible
-- The first-run or missing-settings state
-- A retryable error state such as `CHECK PHONE` or `SELECT TO RETRY`
 
 ## Privacy and Security
 
