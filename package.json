@@ -1,0 +1,71 @@
+{
+  "name": "pinhole",
+  "author": "tylxr",
+  "description": "Pebble Time 2 app for viewing go2rtc security-camera snapshots.",
+  "version": "0.1.0",
+  "keywords": [
+    "pebble-app",
+    "pebble",
+    "go2rtc",
+    "security-camera"
+  ],
+  "private": true,
+  "scripts": {
+    "build": "pebble build",
+    "clean": "pebble clean",
+    "install:emery": "pebble install --emulator emery --vnc"
+  },
+  "dependencies": {
+    "@rebble/clay": "^1.0.8"
+  },
+  "pebble": {
+    "displayName": "PinHole",
+    "uuid": "7ce65af2-7686-468d-842e-7ee0c4b27539",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "capabilities": [
+      "configurable"
+    ],
+    "targetPlatforms": [
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": [
+      "BaseUrl",
+      "CameraList",
+      "CacheSeconds",
+      "Cam0Name",
+      "Cam0Stream",
+      "Cam1Name",
+      "Cam1Stream",
+      "Cam2Name",
+      "Cam2Stream",
+      "Cam3Name",
+      "Cam3Stream",
+      "Cam4Name",
+      "Cam4Stream",
+      "Cam5Name",
+      "Cam5Stream",
+      "RequestFrame",
+      "RequestSeq",
+      "CameraIndex",
+      "CameraCount",
+      "CameraName",
+      "FrameSeq",
+      "FrameWidth",
+      "FrameHeight",
+      "FrameTotalBytes",
+      "FrameOffset",
+      "FrameChunk",
+      "FrameChunkSize",
+      "FrameComplete",
+      "ErrorCode",
+      "ErrorMessage"
+    ],
+    "resources": {
+      "media": []
+    }
+  }
+}
