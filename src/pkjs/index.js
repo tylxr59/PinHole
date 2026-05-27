@@ -1,10 +1,8 @@
 'use strict';
 
-var Clay = require('@rebble/clay');
 var messageKeys = require('message_keys');
-var clayConfig = require('./config');
 var jpegDecoder = require('./jpeg_decoder');
-var clay = new Clay(clayConfig, null, { autoHandleEvents: false });
+var configPage = require('./config_page');
 
 var VIEW_W = 200;
 var VIEW_H = 172;
@@ -30,7 +28,31 @@ function normalizeBaseUrl(url) {
   return url;
 }
 
-function parseCameras(text) {
+function parseCameraJson(text) {
+  var parsed;
+  try {
+    parsed = JSON.parse(text || '[]');
+  } catch (e) {
+    return null;
+  }
+
+  var cams = [];
+  if (!Array.isArray(parsed)) {
+    return cams;
+  }
+
+  for (var i = 0; i < parsed.length; i++) {
+    var cam = parsed[i] || {};
+    var name = trim(cam.name);
+    var stream = trim(cam.stream);
+    if (name && stream) {
+      cams.push({ name: name, stream: stream });
+    }
+  }
+  return cams;
+}
+
+function parseCameraLines(text) {
   var lines = (text || '').split(/\r?\n/);
   var cams = [];
   for (var i = 0; i < lines.length; i++) {
@@ -46,28 +68,44 @@ function parseCameras(text) {
   return cams;
 }
 
-function cameraListFromSlots() {
-  var lines = [];
+function parseCameras(text) {
+  var jsonCameras = parseCameraJson(text);
+  if (jsonCameras) {
+    return jsonCameras;
+  }
+  return parseCameraLines(text);
+}
+
+function cameraArrayFromSlots() {
+  var cams = [];
   for (var i = 0; i < 6; i++) {
     var name = trim(localStorage.getItem('cam' + i + 'Name') || '');
     var stream = trim(localStorage.getItem('cam' + i + 'Stream') || '');
     if (name && stream) {
-      lines.push(name + '=' + stream);
+      cams.push({ name: name, stream: stream });
     }
   }
-  return lines.join('\n');
+  return cams;
+}
+
+function cameraListFromSlots() {
+  var cams = cameraArrayFromSlots();
+  return cams.length ? JSON.stringify(cams) : '';
 }
 
 function getSettings() {
-  var slotList = cameraListFromSlots();
+  var cameraList = localStorage.getItem('cameraList') || '';
+  if (!cameraList) {
+    cameraList = cameraListFromSlots();
+  }
   return {
     baseUrl: normalizeBaseUrl(localStorage.getItem('baseUrl') || ''),
     cacheSeconds: Math.max(0, parseInt(localStorage.getItem('cacheSeconds') || '0', 10) || 0),
-    cameras: parseCameras(slotList || localStorage.getItem('cameraList') || '')
+    cameras: parseCameras(cameraList)
   };
 }
 
-function hydrateStoredClaySettings() {
+function hydrateStoredSettings() {
   var raw = localStorage.getItem('clay-settings');
   if (!raw) return;
 
@@ -92,6 +130,13 @@ function hydrateStoredClaySettings() {
     }
     if (stored[streamKey] !== undefined && !localStorage.getItem('cam' + i + 'Stream')) {
       localStorage.setItem('cam' + i + 'Stream', stored[streamKey] || '');
+    }
+  }
+
+  if (!localStorage.getItem('cameraList')) {
+    var migrated = cameraListFromSlots();
+    if (migrated) {
+      localStorage.setItem('cameraList', migrated);
     }
   }
 }
@@ -322,7 +367,7 @@ function requestFrame(index, seq) {
 
 Pebble.addEventListener('ready', function() {
   console.log('PinHole PKJS ready');
-  hydrateStoredClaySettings();
+  hydrateStoredSettings();
   sendConfig();
 });
 
@@ -335,12 +380,24 @@ Pebble.addEventListener('appmessage', function(e) {
 });
 
 Pebble.addEventListener('showConfiguration', function() {
-  Pebble.openURL(clay.generateUrl());
+  hydrateStoredSettings();
+  Pebble.openURL(configPage.generateConfigUrl(getSettings()));
 });
 
 Pebble.addEventListener('webviewclosed', function(e) {
   if (!e || !e.response) return;
-  var dict = clay.getSettings(e.response, false);
+  var response = e.response;
+  if (response.charAt(0) !== '{') {
+    response = decodeURIComponent(response);
+  }
+
+  var dict;
+  try {
+    dict = JSON.parse(response);
+  } catch (parseError) {
+    console.log('config parse failed: ' + parseError.message);
+    return;
+  }
 
   if (dict.BaseUrl !== undefined) {
     localStorage.setItem('baseUrl', dict.BaseUrl.value || '');
