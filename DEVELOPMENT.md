@@ -3,7 +3,7 @@
 ## Common Commands
 
 ```bash
-npm install
+npm ci
 npm run build
 npm run install:emery
 ```
@@ -36,10 +36,10 @@ attach Basic, Bearer, or `X-API-Key` headers.
 ## Release Checklist
 
 ```bash
-pebble clean
-npm install
+npm run clean
+npm ci
 npm test
-pebble build
+npm run build
 ```
 
 Then install `build/PinHole.pbw` on a device or emulator and verify:
@@ -49,3 +49,5 @@ Then install `build/PinHole.pbw` on a device or emulator and verify:
 - SELECT refreshes the active camera.
 - UP/DOWN switch cameras and fetch a frame.
 - Existing frame remains visible while refreshing.
+
+Push a `v<package version>` tag only after these checks pass. The tag-triggered GitHub Actions workflow repeats the tests and build, then attaches the PBW to the matching GitHub Release.

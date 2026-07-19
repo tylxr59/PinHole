@@ -4,11 +4,13 @@ Check your security cameras from your Pebble Time 2.
 
 PinHole is built for fast wrist checks: switch cameras with the hardware buttons, refresh the current view with SELECT, and keep the last good snapshot on screen while the next one loads. It can fetch directly from go2rtc, Frigate, UniFi Protect, or an arbitrary HTTP(S) JPEG snapshot URL.
 
-Install PinHole from the [Repebble App Store](https://apps.repebble.com/789d24302fcd416ab4f68cf4).
+## Install
 
-![PinHole Pebble screenshot](https://github.com/tylxr59/PinHole/blob/main/pebble_screenshot.png?raw=true)
+Install PinHole from the [Pebble Appstore](https://apps.repebble.com/789d24302fcd416ab4f68cf4), or download a tagged PBW from [GitHub Releases](https://github.com/tylxr59/PinHole/releases).
 
-## Why PinHole?
+![PinHole Pebble screenshot](pebble_screenshot.png)
+
+## Features
 
 - Check cameras without opening your phone
 - Built around Pebble's hardware buttons for quick, one-handed use
@@ -19,7 +21,7 @@ Install PinHole from the [Repebble App Store](https://apps.repebble.com/789d2430
 - Holds the backlight after a new frame arrives so you can actually inspect it
 - Shows clear setup, loading, retry, and error states on the watch
 
-## What You Need
+## Requirements
 
 - Pebble Time 2, `emery`
 - A JPEG snapshot endpoint reachable from the paired phone
@@ -118,14 +120,14 @@ HTTP endpoints are supported for local integrations, but HTTP does not encrypt c
 Install dependencies and build the PBW:
 
 ```bash
-npm install
-pebble build
+npm ci
+npm run build
 ```
 
 Install to the Time 2 emulator:
 
 ```bash
-pebble install --emulator emery --vnc
+npm run install:emery
 ```
 
 Install to a connected watch:
@@ -140,6 +142,12 @@ The compiled package is written to:
 build/PinHole.pbw
 ```
 
+## Releases
+
+Pushing a version tag such as `v1.2.0` runs the GitHub Actions release workflow. The workflow verifies that the tag matches `package.json`, runs the test suite, builds the PBW, uploads it as a workflow artifact, and attaches it to the matching GitHub Release.
+
+To repair a missing or outdated PBW for an existing tag, open **Actions → Release PBW → Run workflow** and enter that tag. Manual runs check out the exact tag before rebuilding and replacing the release asset. Release current code with a new version and tag instead of reusing an older tag.
+
 ## Project Layout
 
 ```text
@@ -149,7 +157,12 @@ src/pkjs/vendor/       Vendored JPEG decoder source
 test/                   Provider URL, migration, auth-header, and settings tests
 package.json           Pebble metadata and message keys
 wscript                Pebble SDK build script
+pebble-appstore.md     Version-controlled Pebble Appstore listing copy
 ```
+
+## License
+
+PinHole is licensed under the terms in [LICENSE](LICENSE).
 
 ## Notes
 
