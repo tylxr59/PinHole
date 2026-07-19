@@ -1,19 +1,22 @@
 {
   "name": "pinhole",
   "author": "tylxr",
-  "description": "Pebble Time 2 app for viewing go2rtc security-camera snapshots.",
-  "version": "1.1.0",
+  "description": "Pebble Time 2 app for viewing authenticated security-camera snapshots.",
+  "version": "1.2.0",
   "keywords": [
     "pebble-app",
     "pebble",
     "go2rtc",
+    "frigate",
+    "unifi-protect",
     "security-camera"
   ],
   "private": true,
   "scripts": {
     "build": "pebble build",
     "clean": "pebble clean",
-    "install:emery": "pebble install --emulator emery --vnc"
+    "install:emery": "pebble install --emulator emery --vnc",
+    "test": "node test/snapshot_source_test.js && node test/pkjs_auth_test.js"
   },
   "pebble": {
     "displayName": "PinHole",

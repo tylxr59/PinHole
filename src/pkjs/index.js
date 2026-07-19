@@ -3,6 +3,7 @@
 var messageKeys = require('message_keys');
 var jpegDecoder = require('./jpeg_decoder');
 var configPage = require('./config_page');
+var snapshotSource = require('./snapshot_source');
 
 var VIEW_W = 200;
 var VIEW_H = 172;
@@ -15,65 +16,15 @@ var ERR_TRANSFER = 4;
 
 var activeSendSeq = 0;
 var activeRequestTimer = null;
+var frigateAuth = {
+  key: '',
+  authenticated: false,
+  pending: false,
+  waiters: []
+};
 
 function trim(s) {
-  return (s || '').replace(/^\s+|\s+$/g, '');
-}
-
-function normalizeBaseUrl(url) {
-  url = trim(url);
-  while (url.length > 1 && url.charAt(url.length - 1) === '/') {
-    url = url.substring(0, url.length - 1);
-  }
-  return url;
-}
-
-function parseCameraJson(text) {
-  var parsed;
-  try {
-    parsed = JSON.parse(text || '[]');
-  } catch (e) {
-    return null;
-  }
-
-  var cams = [];
-  if (!Array.isArray(parsed)) {
-    return cams;
-  }
-
-  for (var i = 0; i < parsed.length; i++) {
-    var cam = parsed[i] || {};
-    var name = trim(cam.name);
-    var stream = trim(cam.stream);
-    if (name && stream) {
-      cams.push({ name: name, stream: stream });
-    }
-  }
-  return cams;
-}
-
-function parseCameraLines(text) {
-  var lines = (text || '').split(/\r?\n/);
-  var cams = [];
-  for (var i = 0; i < lines.length; i++) {
-    var line = trim(lines[i]);
-    if (!line) continue;
-    var eq = line.indexOf('=');
-    if (eq <= 0) continue;
-    var name = trim(line.substring(0, eq));
-    var stream = trim(line.substring(eq + 1));
-    if (!name || !stream) continue;
-    cams.push({ name: name, stream: stream });
-  }
-  return cams;
-}
-
-function parseCameras(text) {
-  var jsonCameras = parseCameraJson(text);
-  if (jsonCameras) {
-    return jsonCameras;
-  }
-  return parseCameraLines(text);
+  return snapshotSource.trim(s);
 }
 
 function cameraArrayFromSlots() {
@@ -82,7 +33,7 @@ function cameraArrayFromSlots() {
     var name = trim(localStorage.getItem('cam' + i + 'Name') || '');
     var stream = trim(localStorage.getItem('cam' + i + 'Stream') || '');
     if (name && stream) {
-      cams.push({ name: name, stream: stream });
+      cams.push({ name: name, source: stream });
     }
   }
   return cams;
@@ -99,9 +50,18 @@ function getSettings() {
     cameraList = cameraListFromSlots();
   }
   return {
-    baseUrl: normalizeBaseUrl(localStorage.getItem('baseUrl') || ''),
+    sourceType: snapshotSource.normalizeSourceType(
+      localStorage.getItem('sourceType') || 'go2rtc'
+    ),
+    baseUrl: snapshotSource.normalizeBaseUrl(localStorage.getItem('baseUrl') || ''),
     cacheSeconds: Math.max(0, parseInt(localStorage.getItem('cacheSeconds') || '0', 10) || 0),
-    cameras: parseCameras(cameraList)
+    authType: snapshotSource.normalizeAuthType(
+      localStorage.getItem('authType') || 'none'
+    ),
+    authUsername: localStorage.getItem('authUsername') || '',
+    authPassword: localStorage.getItem('authPassword') || '',
+    authToken: localStorage.getItem('authToken') || '',
+    cameras: snapshotSource.parseCameras(cameraList)
   };
 }
 
@@ -121,6 +81,21 @@ function hydrateStoredSettings() {
   }
   if (stored.CacheSeconds !== undefined && !localStorage.getItem('cacheSeconds')) {
     localStorage.setItem('cacheSeconds', stored.CacheSeconds || '0');
+  }
+  if (stored.SourceType !== undefined && !localStorage.getItem('sourceType')) {
+    localStorage.setItem('sourceType', stored.SourceType || 'go2rtc');
+  }
+  if (stored.AuthType !== undefined && !localStorage.getItem('authType')) {
+    localStorage.setItem('authType', stored.AuthType || 'none');
+  }
+  if (stored.AuthUsername !== undefined && !localStorage.getItem('authUsername')) {
+    localStorage.setItem('authUsername', stored.AuthUsername || '');
+  }
+  if (stored.AuthPassword !== undefined && !localStorage.getItem('authPassword')) {
+    localStorage.setItem('authPassword', stored.AuthPassword || '');
+  }
+  if (stored.AuthToken !== undefined && !localStorage.getItem('authToken')) {
+    localStorage.setItem('authToken', stored.AuthToken || '');
   }
   for (var i = 0; i < 6; i++) {
     var nameKey = 'Cam' + i + 'Name';
@@ -197,15 +172,10 @@ function sendError(seq, index, code, message) {
 }
 
 function buildSnapshotUrl(settings, cam) {
-  var url = settings.baseUrl + '/api/frame.jpeg?src=' +
-            encodeURIComponent(cam.stream) + '&w=' + VIEW_W;
-  if (settings.cacheSeconds > 0) {
-    url += '&cache=' + encodeURIComponent(settings.cacheSeconds + 's');
-  }
-  return url;
+  return snapshotSource.buildSnapshotUrl(settings, cam);
 }
 
-function fetchArrayBuffer(url, cb) {
+function fetchArrayBuffer(url, options, cb) {
   var req = new XMLHttpRequest();
   var finished = false;
   var timer = setTimeout(function() {
@@ -223,11 +193,22 @@ function fetchArrayBuffer(url, cb) {
   }
 
   req.open('GET', url, true);
+  if (options && options.withCredentials) {
+    req.withCredentials = true;
+  }
+  var headers = options && options.headers ? options.headers : {};
+  for (var name in headers) {
+    if (Object.prototype.hasOwnProperty.call(headers, name)) {
+      req.setRequestHeader(name, headers[name]);
+    }
+  }
   req.responseType = 'arraybuffer';
   req.timeout = 20000;
   req.onload = function() {
     if (req.status < 200 || req.status >= 300) {
-      done(new Error('HTTP ' + req.status));
+      var statusError = new Error('HTTP ' + req.status);
+      statusError.status = req.status;
+      done(statusError);
       return;
     }
     done(null, req.response);
@@ -235,6 +216,116 @@ function fetchArrayBuffer(url, cb) {
   req.onerror = function() { done(new Error('NETWORK ERROR')); };
   req.ontimeout = function() { done(new Error('TIMEOUT')); };
   req.send();
+}
+
+function frigateAuthKey(settings) {
+  return settings.baseUrl + '\n' + settings.authUsername + '\n' +
+         settings.authPassword;
+}
+
+function finishFrigateLogin(error) {
+  var waiters = frigateAuth.waiters;
+  frigateAuth.waiters = [];
+  frigateAuth.pending = false;
+  frigateAuth.authenticated = !error;
+  for (var i = 0; i < waiters.length; i++) {
+    waiters[i](error);
+  }
+}
+
+function ensureFrigateAuthenticated(settings, cb) {
+  var key = frigateAuthKey(settings);
+  if (frigateAuth.key !== key) {
+    frigateAuth.key = key;
+    frigateAuth.authenticated = false;
+    frigateAuth.pending = false;
+    frigateAuth.waiters = [];
+  }
+
+  if (frigateAuth.authenticated) {
+    cb(null);
+    return;
+  }
+
+  frigateAuth.waiters.push(cb);
+  if (frigateAuth.pending) {
+    return;
+  }
+  frigateAuth.pending = true;
+
+  var req = new XMLHttpRequest();
+  var finished = false;
+  var timer = setTimeout(function() {
+    if (finished) return;
+    finished = true;
+    try { req.abort(); } catch (e) {}
+    finishFrigateLogin(new Error('AUTH TIMEOUT'));
+  }, 8000);
+
+  function done(error) {
+    if (finished) return;
+    finished = true;
+    clearTimeout(timer);
+    finishFrigateLogin(error);
+  }
+
+  req.open('POST', settings.baseUrl + '/api/login', true);
+  req.withCredentials = true;
+  req.timeout = 8000;
+  req.setRequestHeader('Content-Type', 'application/json');
+  req.setRequestHeader('X-CSRF-TOKEN', '1');
+  req.onload = function() {
+    if (req.status >= 200 && req.status < 300) {
+      done(null);
+    } else if (req.status === 401) {
+      done(new Error('AUTH FAILED'));
+    } else if (req.status === 429) {
+      done(new Error('AUTH RATE LIMITED'));
+    } else {
+      done(new Error('AUTH HTTP ' + req.status));
+    }
+  };
+  req.onerror = function() { done(new Error('AUTH NETWORK ERROR')); };
+  req.ontimeout = function() { done(new Error('AUTH TIMEOUT')); };
+  req.send(JSON.stringify({
+    user: settings.authUsername,
+    password: settings.authPassword
+  }));
+}
+
+function fetchSnapshot(settings, camera, cb, allowAuthRetry) {
+  var options = snapshotSource.requestOptions(settings);
+  var url = buildSnapshotUrl(settings, camera);
+
+  function fetchNow() {
+    fetchArrayBuffer(url, options, function(error, buffer) {
+      if (error && error.status === 401 && options.authType === 'frigate' &&
+          allowAuthRetry !== false) {
+        frigateAuth.authenticated = false;
+        ensureFrigateAuthenticated(settings, function(loginError) {
+          if (loginError) {
+            cb(loginError);
+            return;
+          }
+          fetchSnapshot(settings, camera, cb, false);
+        });
+        return;
+      }
+      cb(error, buffer);
+    });
+  }
+
+  if (options.authType === 'frigate') {
+    ensureFrigateAuthenticated(settings, function(loginError) {
+      if (loginError) {
+        cb(loginError);
+        return;
+      }
+      fetchNow();
+    });
+  } else {
+    fetchNow();
+  }
 }
 
 function fitSize(srcW, srcH) {
@@ -311,7 +402,7 @@ function requestFrame(index, seq) {
   var settings = getSettings();
   sendCameraName(index);
 
-  if (!settings.baseUrl) {
+  if (settings.sourceType !== 'custom' && !settings.baseUrl) {
     sendError(seq, index, ERR_CONFIG, 'SET BASE URL');
     return;
   }
@@ -325,13 +416,17 @@ function requestFrame(index, seq) {
   }
 
   var cam = settings.cameras[index];
+  if (!buildSnapshotUrl(settings, cam)) {
+    sendError(seq, index, ERR_CONFIG, 'SET SNAPSHOT URL');
+    return;
+  }
   activeRequestTimer = setTimeout(function() {
     if (seq === activeSendSeq) {
       sendError(seq, index, ERR_HTTP, 'PHONE TIMEOUT');
     }
   }, 30000);
 
-  fetchArrayBuffer(buildSnapshotUrl(settings, cam), function(fetchErr, buffer) {
+  fetchSnapshot(settings, cam, function(fetchErr, buffer) {
     if (seq !== activeSendSeq) return;
     if (activeRequestTimer) {
       clearTimeout(activeRequestTimer);
@@ -402,12 +497,31 @@ Pebble.addEventListener('webviewclosed', function(e) {
   if (dict.BaseUrl !== undefined) {
     localStorage.setItem('baseUrl', dict.BaseUrl.value || '');
   }
+  if (dict.SourceType !== undefined) {
+    localStorage.setItem('sourceType', dict.SourceType.value || 'go2rtc');
+  }
+  if (dict.AuthType !== undefined) {
+    localStorage.setItem('authType', dict.AuthType.value || 'none');
+  }
+  if (dict.AuthUsername !== undefined) {
+    localStorage.setItem('authUsername', dict.AuthUsername.value || '');
+  }
+  if (dict.AuthPassword !== undefined) {
+    localStorage.setItem('authPassword', dict.AuthPassword.value || '');
+  }
+  if (dict.AuthToken !== undefined) {
+    localStorage.setItem('authToken', dict.AuthToken.value || '');
+  }
   if (dict.CameraList !== undefined) {
     localStorage.setItem('cameraList', dict.CameraList.value || '');
   }
   if (dict.CacheSeconds !== undefined) {
     localStorage.setItem('cacheSeconds', dict.CacheSeconds.value || '0');
   }
+  frigateAuth.key = '';
+  frigateAuth.authenticated = false;
+  frigateAuth.pending = false;
+  frigateAuth.waiters = [];
   for (var i = 0; i < 6; i++) {
     var nameKey = 'Cam' + i + 'Name';
     var streamKey = 'Cam' + i + 'Stream';
