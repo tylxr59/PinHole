@@ -138,24 +138,28 @@ function payloadValue(payload, name, fallback) {
   return fallback;
 }
 
-function sendConfig() {
+function sendConfig(forceRefresh) {
   var settings = getSettings();
   var msg = {
     CameraCount: settings.cameras.length
   };
+  if (forceRefresh) {
+    msg.RequestFrame = 1;
+  }
   if (settings.cameras.length > 0) {
     msg.CameraName = settings.cameras[0].name;
   }
   sendMessage(msg);
 }
 
-function sendCameraName(index) {
+function sendCameraName(index, seq) {
   var settings = getSettings();
   var name = '';
   if (index >= 0 && index < settings.cameras.length) {
     name = settings.cameras[index].name;
   }
   sendMessage({
+    FrameSeq: seq,
     CameraIndex: index,
     CameraCount: settings.cameras.length,
     CameraName: name
@@ -163,6 +167,7 @@ function sendCameraName(index) {
 }
 
 function sendError(seq, index, code, message) {
+  if (seq !== activeSendSeq) return;
   sendMessage({
     FrameSeq: seq,
     CameraIndex: index,
@@ -400,7 +405,7 @@ function requestFrame(index, seq) {
     activeRequestTimer = null;
   }
   var settings = getSettings();
-  sendCameraName(index);
+  sendCameraName(index, seq);
 
   if (settings.sourceType !== 'custom' && !settings.baseUrl) {
     sendError(seq, index, ERR_CONFIG, 'SET BASE URL');
@@ -463,7 +468,7 @@ function requestFrame(index, seq) {
 Pebble.addEventListener('ready', function() {
   console.log('PinHole PKJS ready');
   hydrateStoredSettings();
-  sendConfig();
+  sendConfig(false);
 });
 
 Pebble.addEventListener('appmessage', function(e) {
@@ -533,5 +538,5 @@ Pebble.addEventListener('webviewclosed', function(e) {
     }
   }
 
-  sendConfig();
+  sendConfig(true);
 });

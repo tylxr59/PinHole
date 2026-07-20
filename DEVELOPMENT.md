@@ -40,6 +40,7 @@ npm run clean
 npm ci
 npm test
 npm run build
+npm run --silent release:notes -- <version>
 ```
 
 Then install `build/PinHole.pbw` on a device or emulator and verify:
@@ -50,4 +51,4 @@ Then install `build/PinHole.pbw` on a device or emulator and verify:
 - UP/DOWN switch cameras and fetch a frame.
 - Existing frame remains visible while refreshing.
 
-Push a `v<package version>` tag only after these checks pass. The tag-triggered GitHub Actions workflow repeats the tests and build, then attaches the PBW to the matching GitHub Release.
+Push a `v<package version>` tag only after these checks pass and the matching `CHANGELOG.md` entry has been reviewed. The tag-triggered GitHub Actions workflow repeats the tests and build, then uses that exact changelog entry for the GitHub Release and attaches the PBW.

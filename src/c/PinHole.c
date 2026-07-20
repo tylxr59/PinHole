@@ -35,6 +35,7 @@ static int s_camera_index;
 static uint32_t s_request_seq;
 static uint32_t s_active_frame_seq;
 static bool s_waiting_for_frame;
+static AppTimer *s_initial_request_timer;
 static AppTimer *s_request_timeout_timer;
 static AppTimer *s_status_redraw_timer;
 static AppTimer *s_backlight_timer;
@@ -132,6 +133,11 @@ static void prv_request_frame(void) {
   if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
     prv_set_error("OUTBOX BUSY");
     return;
+  }
+
+  if (s_initial_request_timer) {
+    app_timer_cancel(s_initial_request_timer);
+    s_initial_request_timer = NULL;
   }
 
   s_request_seq++;
@@ -337,21 +343,25 @@ static void prv_begin_frame(uint32_t seq, int w, int h, uint32_t total) {
 
 static void prv_receive_chunk(uint32_t seq, uint32_t offset, uint8_t *data,
                               uint32_t len) {
-  if (seq != s_active_frame_seq || !s_frame || offset >= s_frame_len) {
+  if (seq != s_active_frame_seq) {
     return;
   }
-  if (offset + len > s_frame_len) {
-    len = s_frame_len - offset;
+  if (!s_frame || !data || !len || offset != s_frame_received ||
+      offset >= s_frame_len || len > s_frame_len - offset) {
+    prv_set_error("TRANSFER FAILED");
+    return;
   }
 
   memcpy(s_frame + offset, data, len);
-  if (offset + len > s_frame_received) {
-    s_frame_received = offset + len;
-  }
+  s_frame_received += len;
 }
 
 static void prv_complete_frame(uint32_t seq) {
-  if (seq != s_active_frame_seq || !s_frame || s_frame_received < s_frame_len) {
+  if (seq != s_active_frame_seq) {
+    return;
+  }
+  if (!s_frame || s_frame_received != s_frame_len) {
+    prv_set_error("TRANSFER FAILED");
     return;
   }
 
@@ -370,6 +380,14 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *t;
   bool got_config = false;
   bool got_camera_index = false;
+  bool force_refresh = dict_find(iter, MESSAGE_KEY_RequestFrame) != NULL;
+
+  Tuple *frame_seq = dict_find(iter, MESSAGE_KEY_FrameSeq);
+  uint32_t seq = frame_seq ? (uint32_t)frame_seq->value->uint32
+                           : s_active_frame_seq;
+  if (frame_seq && seq != s_active_frame_seq) {
+    return;
+  }
 
   if ((t = dict_find(iter, MESSAGE_KEY_CameraCount))) {
     got_config = true;
@@ -397,11 +415,6 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     s_camera_name[sizeof(s_camera_name) - 1] = '\0';
   }
 
-  uint32_t seq = s_active_frame_seq;
-  if ((t = dict_find(iter, MESSAGE_KEY_FrameSeq))) {
-    seq = (uint32_t)t->value->uint32;
-  }
-
   if ((t = dict_find(iter, MESSAGE_KEY_ErrorCode))) {
     (void)t;
     Tuple *msg = dict_find(iter, MESSAGE_KEY_ErrorMessage);
@@ -410,7 +423,9 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   }
 
   if (got_config && !got_camera_index) {
-    prv_request_frame();
+    if (force_refresh || s_initial_request_timer || !s_waiting_for_frame) {
+      prv_request_frame();
+    }
     return;
   }
 
@@ -427,8 +442,11 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *chunk = dict_find(iter, MESSAGE_KEY_FrameChunk);
   Tuple *chunk_size = dict_find(iter, MESSAGE_KEY_FrameChunkSize);
   if (offset && chunk) {
-    uint32_t len = chunk_size ? (uint32_t)chunk_size->value->uint32
-                              : (uint32_t)chunk->length;
+    uint32_t len = (uint32_t)chunk->length;
+    if (chunk_size && (uint32_t)chunk_size->value->uint32 != len) {
+      prv_set_error("TRANSFER FAILED");
+      return;
+    }
     prv_receive_chunk(seq, (uint32_t)offset->value->uint32,
                       chunk->value->data, len);
   }
@@ -481,6 +499,7 @@ static void prv_click_config_provider(void *context) {
 
 static void prv_initial_request(void *context) {
   (void)context;
+  s_initial_request_timer = NULL;
   prv_request_frame();
 }
 
@@ -523,10 +542,14 @@ static void prv_init(void) {
   });
   window_stack_push(s_window, true);
 
-  app_timer_register(750, prv_initial_request, NULL);
+  s_initial_request_timer = app_timer_register(750, prv_initial_request, NULL);
 }
 
 static void prv_deinit(void) {
+  if (s_initial_request_timer) {
+    app_timer_cancel(s_initial_request_timer);
+    s_initial_request_timer = NULL;
+  }
   prv_cancel_request_timeout();
   prv_cancel_status_redraw();
   if (s_backlight_timer) {

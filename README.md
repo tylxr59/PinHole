@@ -144,7 +144,7 @@ build/PinHole.pbw
 
 ## Releases
 
-Pushing a version tag such as `v1.2.0` runs the GitHub Actions release workflow. The workflow verifies that the tag matches `package.json`, runs the test suite, builds the PBW, uploads it as a workflow artifact, and attaches it to the matching GitHub Release.
+Pushing a version tag such as `v1.2.2` runs the GitHub Actions release workflow. The workflow verifies that the tag matches `package.json`, runs the test suite, builds the PBW, uses the matching `CHANGELOG.md` entry as the release notes, uploads the PBW as a workflow artifact, and attaches it to the matching GitHub Release.
 
 To repair a missing or outdated PBW for an existing tag, open **Actions → Release PBW → Run workflow** and enter that tag. Manual runs check out the exact tag before rebuilding and replacing the release asset. Release current code with a new version and tag instead of reusing an older tag.
 
@@ -157,12 +157,15 @@ src/pkjs/vendor/       Vendored JPEG decoder source
 test/                   Provider URL, migration, auth-header, and settings tests
 package.json           Pebble metadata and message keys
 wscript                Pebble SDK build script
+CHANGELOG.md            Versioned user-facing release notes
+tools/                  Release-note extraction tooling
 pebble-appstore.md     Version-controlled Pebble Appstore listing copy
+THIRD_PARTY_NOTICES.md Third-party attribution and licensing
 ```
 
 ## License
 
-PinHole is licensed under the terms in [LICENSE](LICENSE).
+PinHole is licensed under the terms in [LICENSE](LICENSE). The vendored JPEG decoder has separate attribution and Apache-2.0 terms documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Notes
 
