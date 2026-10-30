@@ -5,7 +5,7 @@
 <h1 align="center">PinHole</h1>
 
 <p align="center">
-  Check your security cameras from your Pebble Time 2
+  Check your security cameras from your Pebble Time 2.
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
   <a href="https://github.com/tylxr59/PinHole/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/tylxr59/PinHole?display_name=tag&sort=semver"></a>
   <a href="https://apps.repebble.com/789d24302fcd416ab4f68cf4"><img alt="Pebble Appstore" src="https://img.shields.io/badge/Pebble%20Appstore-PinHole-ff4700"></a>
   <a href="#-requirements"><img alt="Frigate, UniFi Protect, go2rtc" src="https://img.shields.io/badge/works%20with-Frigate%20%7C%20UniFi%20Protect%20%7C%20go2rtc-555"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/tylxr59/PinHole"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-97ca00"></a>
 </p>
 
 <p align="center">
@@ -24,8 +24,6 @@
 </p>
 
 ---
-
-## 📷 PinHole
 
 PinHole is built for fast wrist checks: switch cameras with the hardware buttons, refresh the current view with SELECT, and keep the last good snapshot on screen while the next one loads. It can fetch directly from go2rtc, Frigate, UniFi Protect, or an arbitrary HTTP(S) JPEG snapshot URL.
 
