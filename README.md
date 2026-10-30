@@ -1,27 +1,55 @@
-# PinHole
+<p align="center">
+  <img src="logo_144x144.png" alt="PinHole logo" width="112" height="112">
+</p>
 
-Check your security cameras from your Pebble Time 2.
+<h1 align="center">PinHole</h1>
+
+<p align="center">
+  Check your security cameras from your Pebble Time 2
+</p>
+
+<p align="center">
+  <a href="https://github.com/tylxr59/PinHole/actions/workflows/ci.yml"><img alt="Release status" src="https://github.com/tylxr59/PinHole/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/tylxr59/PinHole/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/tylxr59/PinHole?display_name=tag&sort=semver"></a>
+  <a href="https://apps.repebble.com/789d24302fcd416ab4f68cf4"><img alt="Pebble Appstore" src="https://img.shields.io/badge/Pebble%20Appstore-PinHole-ff4700"></a>
+  <a href="#-requirements"><img alt="Frigate, UniFi Protect, go2rtc" src="https://img.shields.io/badge/works%20with-Frigate%20%7C%20UniFi%20Protect%20%7C%20go2rtc-555"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/tylxr59/PinHole"></a>
+</p>
+
+<p align="center">
+  <a href="#-features">Features</a> ·
+  <a href="#-quick-start">Quick start</a> ·
+  <a href="#-controls">Controls</a> ·
+  <a href="#-troubleshooting">Troubleshooting</a>
+</p>
+
+---
+
+## 📷 PinHole
 
 PinHole is built for fast wrist checks: switch cameras with the hardware buttons, refresh the current view with SELECT, and keep the last good snapshot on screen while the next one loads. It can fetch directly from go2rtc, Frigate, UniFi Protect, or an arbitrary HTTP(S) JPEG snapshot URL.
 
-## Install
+<p align="center">
+  <img src="pebble_screenshot.png" alt="PinHole showing a camera snapshot on Pebble Time 2" width="300">
+</p>
 
-Install PinHole from the [Pebble Appstore](https://apps.repebble.com/789d24302fcd416ab4f68cf4), or download a tagged PBW from [GitHub Releases](https://github.com/tylxr59/PinHole/releases).
+> [!NOTE]
+> PinHole fetches still JPEG snapshots. RTSP, RTSPS, MJPEG, and video streams are not supported.
 
-![PinHole Pebble screenshot](pebble_screenshot.png)
+## 🎯 Features
 
-## Features
+| Feature                  | What it does                                                             |
+| ------------------------ | ------------------------------------------------------------------------ |
+| ⌚ **Wrist checks**      | See your cameras without taking out your phone.                          |
+| 🔘 **Button-first**      | Switch cameras with UP and DOWN, refresh with SELECT, one-handed.        |
+| 📡 **Direct connection** | The paired phone talks straight to your camera service. No middleman.    |
+| 🔑 **Flexible auth**     | Frigate accounts, HTTP Basic, Bearer tokens, and `X-API-Key`.            |
+| 🖼️ **No blank screens**  | The previous frame stays visible while a fresh snapshot loads.           |
+| 🎥 **Multiple cameras**  | Add as many as you like in the companion app settings.                   |
+| 💡 **Backlight hold**    | The backlight stays on after a new frame arrives, so you can inspect it. |
+| 🚦 **Clear states**      | Setup, loading, retry, and error messages are shown on the watch.        |
 
-- Check cameras without opening your phone
-- Built around Pebble's hardware buttons for quick, one-handed use
-- Talks directly to your configured camera service from the paired phone
-- Supports Frigate accounts, HTTP Basic, Bearer tokens, and `X-API-Key`
-- Keeps the previous frame visible while a fresh snapshot loads
-- Supports multiple cameras through the companion app settings
-- Holds the backlight after a new frame arrives so you can actually inspect it
-- Shows clear setup, loading, retry, and error states on the watch
-
-## Requirements
+## 📋 Requirements
 
 - Pebble Time 2, `emery`
 - A JPEG snapshot endpoint reachable from the paired phone
@@ -36,9 +64,11 @@ Frigate: <base>/api/<camera>/latest.jpg?height=172
 UniFi:   <base>/proxy/protect/integration/v1/cameras/<id>/snapshot
 ```
 
-Custom sources use the complete snapshot URL supplied for each camera. RTSP, RTSPS, MJPEG, and video streams are not supported.
+Custom sources use the complete snapshot URL supplied for each camera.
 
-## Setup
+## 🚀 Quick start
+
+Install PinHole from the [Pebble Appstore](https://apps.repebble.com/789d24302fcd416ab4f68cf4), or download a tagged PBW from [GitHub Releases](https://github.com/tylxr59/PinHole/releases).
 
 Open PinHole from the Pebble companion app settings and configure:
 
@@ -86,14 +116,14 @@ Existing go2rtc configuration is migrated automatically. For go2rtc, enter the s
 http://camera.local/snapshot.jpg
 ```
 
-## Controls
+## 🎮 Controls
 
 - **UP**: previous camera and fetch a new frame
 - **DOWN**: next camera and fetch a new frame
 - **SELECT**: refresh the current camera
 - **BACK**: exit the app
 
-## Troubleshooting
+## 🩺 Troubleshooting
 
 - **SET BASE URL**: a provider base URL is empty.
 - **SET SNAPSHOT URL**: a custom snapshot URL is empty.
@@ -107,7 +137,7 @@ http://camera.local/snapshot.jpg
 
 For unauthenticated sources, open the generated URL from the paired phone's browser. Authenticated sources must be tested from the watch because browser image previews cannot attach the configured headers.
 
-## Privacy and Security
+## 🔐 Privacy and security
 
 PinHole does not operate an external service or proxy. Snapshot requests are made by the paired phone directly to the endpoint you configure. The optional UniFi cloud connector is an Ubiquiti service selected explicitly by the user.
 
@@ -115,12 +145,13 @@ Camera names, sources, base URL, authentication method, and credentials are stor
 
 HTTP endpoints are supported for local integrations, but HTTP does not encrypt credentials or images. Use authenticated HTTP only on a trusted network. HTTPS certificate verification is controlled by the paired phone; PinHole cannot accept an untrusted self-signed certificate on the user's behalf.
 
-## Development
+## 👋 Development
 
 Install dependencies and build the PBW:
 
 ```bash
 npm ci
+npm test
 npm run build
 ```
 
@@ -142,13 +173,7 @@ The compiled package is written to:
 build/PinHole.pbw
 ```
 
-## Releases
-
-Pushing a version tag such as `v1.2.2` runs the GitHub Actions release workflow. The workflow verifies that the tag matches `package.json`, runs the test suite, builds the PBW, uses the matching `CHANGELOG.md` entry as the release notes, uploads the PBW as a workflow artifact, and attaches it to the matching GitHub Release.
-
-To repair a missing or outdated PBW for an existing tag, open **Actions → Release PBW → Run workflow** and enter that tag. Manual runs check out the exact tag before rebuilding and replacing the release asset. Release current code with a new version and tag instead of reusing an older tag.
-
-## Project Layout
+### Project layout
 
 ```text
 src/c/                 Pebble C app and UI
@@ -163,12 +188,18 @@ pebble-appstore.md     Version-controlled Pebble Appstore listing copy
 THIRD_PARTY_NOTICES.md Third-party attribution and licensing
 ```
 
-## License
+## 📦 Releases
 
-PinHole is licensed under the terms in [LICENSE](LICENSE). The vendored JPEG decoder has separate attribution and Apache-2.0 terms documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Pushing a version tag such as `v1.2.2` runs the GitHub Actions release workflow. The workflow verifies that the tag matches `package.json`, runs the test suite, builds the PBW, builds release notes from the matching `CHANGELOG.md` entry followed by GitHub's generated notes (merged PRs, new contributors, and a compare link), uploads the PBW as a workflow artifact, and attaches it to the matching GitHub Release.
 
-## Notes
+To repair a missing or outdated PBW for an existing tag, open **Actions → Release PBW → Run workflow** and enter that tag. Manual runs check out the exact tag before rebuilding and replacing the release asset. Release current code with a new version and tag instead of reusing an older tag.
+
+## 🤝 Acknowledgements
 
 PinHole currently targets `emery` only. The settings page is generated locally by PebbleKitJS and stores configuration on the paired phone. Older go2rtc `{name, stream}` camera lists and fixed camera slots are migrated to the current source format. The JPEG decoder in `src/pkjs/vendor/` is derived from the `jpeg-js` decoder and kept in-tree with small ES5 compatibility edits for Pebble's older webpack toolchain.
 
 AI assistance was used during development for code review, UI polish, documentation drafting, and implementation support. The app behavior, configuration choices, and release decisions were reviewed by the project maintainer.
+
+## 📃 License
+
+PinHole is available under the [MIT License](LICENSE). The vendored JPEG decoder has separate attribution and Apache-2.0 terms documented in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
